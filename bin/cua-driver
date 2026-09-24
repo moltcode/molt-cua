@@ -17,8 +17,16 @@ while [ -L "$self" ]; do
   esac
 done
 
-pkg=$(cd "$(dirname "$self")/.." && pwd -P)
-state=${MOLT_CUA_STATE_DIR:-$(dirname "$pkg")/state}
+# Molt's bin shim exports both directories; the plugin never assumes Molt's
+# on-disk layout.
+pkg=${MOLT_PLUGIN_DIR:-$(cd "$(dirname "$self")/.." && pwd -P)}
+state=${MOLT_PLUGIN_STATE_DIR:-${MOLT_CUA_STATE_DIR:-}}
+
+if [ -z "$state" ]; then
+  echo "cua-driver: run it through Molt Code (MOLT_PLUGIN_STATE_DIR is not set)." >&2
+  exit 69
+fi
+
 sock=$state/driver.sock
 driver=$pkg/dist/cua-driver
 

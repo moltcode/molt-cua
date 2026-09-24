@@ -1,6 +1,6 @@
 {
   "name": "molt-cua",
-  "version": "0.28.2",
+  "version": "0.28.2-1",
   "description": "Computer use for Molt agents: the Cua Driver CLI and skill, run as a daemon embedded in Molt Code so macOS permissions belong to Molt.",
   "license": "MIT",
   "repository": {
