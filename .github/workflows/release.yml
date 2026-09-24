@@ -1,0 +1,42 @@
+name: release
+
+# Push a v<version> tag matching package.json to repack the pinned upstream
+# cua-driver-rs release and publish the per-platform tarballs.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check tag matches package.json
+        if: github.event_name == 'push'
+        run: |
+          want="v$(jq -r .version package.json)"
+          if [ "$GITHUB_REF_NAME" != "$want" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json ($want)" >&2
+            exit 1
+          fi
+
+      - name: Repack
+        run: bash scripts/repack.sh
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(jq -r .version package.json)"
+          upstream=$(jq -r .molt.upstream.tag package.json)
+          notes="Repack of trycua/cua \`$upstream\`, verified against its checksums.txt."
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" out/*.tgz out/artifacts.json --clobber
+          else
+            gh release create "$tag" out/*.tgz out/artifacts.json --title "$tag" --notes "$notes"
+          fi

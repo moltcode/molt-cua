@@ -1,0 +1,50 @@
+#!/bin/sh
+# Molt launcher for cua-driver.
+#
+# Molt Code owns the cua-driver daemon: it runs `serve --embedded` as a direct
+# child of the app, so macOS charges Accessibility and Screen Recording to
+# Molt Code and cua never shows its own prompts. This launcher points every
+# CLI call at that daemon's private socket and refuses the subcommands that
+# would start a second daemon, self-update, or raise cua's own permission UI.
+set -e
+
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case $link in
+    /*) self=$link ;;
+    *) self=$(dirname "$self")/$link ;;
+  esac
+done
+
+pkg=$(cd "$(dirname "$self")/.." && pwd -P)
+state=${MOLT_CUA_STATE_DIR:-$(dirname "$pkg")/state}
+sock=$state/driver.sock
+driver=$pkg/dist/cua-driver
+
+managed() {
+  echo "cua-driver: '$1' is managed by Molt Code (the daemon runs embedded in Molt)." >&2
+  exit 64
+}
+
+case ${1:-} in
+  serve | stop | update | autostart | channel | skills) managed "$1" ;;
+  permissions)
+    if [ "${2:-}" = grant ]; then
+      echo "cua-driver: grant access from Molt Code: Plugins > Computer Use (Cua) > Grant access." >&2
+      exit 64
+    fi
+    ;;
+esac
+
+export CUA_DRIVER_EMBEDDED=1
+export CUA_DRIVER_RS_HOME="$state/home"
+export CUA_DRIVER_RS_TELEMETRY_ENABLED=0
+export CUA_DRIVER_RS_UPDATE_CHECK=0
+
+if [ ! -S "$sock" ]; then
+  echo "cua-driver: Molt's cua daemon is not running ($sock). Open Molt Code > Plugins > Computer Use (Cua)." >&2
+  exit 69
+fi
+
+exec "$driver" "$@" --socket "$sock"

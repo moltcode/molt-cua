@@ -1,0 +1,48 @@
+{
+  "name": "molt-cua",
+  "version": "0.28.2",
+  "description": "Computer use for Molt agents: the Cua Driver CLI and skill, run as a daemon embedded in Molt Code so macOS permissions belong to Molt.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moltcode/molt-cua"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "skills"
+  ],
+  "molt": {
+    "manifestVersion": 1,
+    "displayName": "Computer Use (Cua)",
+    "kinds": ["cli", "skill"],
+    "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64"],
+    "upstream": {
+      "repo": "trycua/cua",
+      "tag": "cua-driver-rs-v0.28.2"
+    },
+    "hostPermissions": ["accessibility", "screen_recording"],
+    "contributes": {
+      "bin": {
+        "cua-driver": "bin/cua-driver"
+      },
+      "skills": ["skills/cua-driver"],
+      "services": {
+        "driver": {
+          "name": "Cua Driver daemon",
+          "command": "dist/cua-driver",
+          "args": ["serve", "--embedded", "--socket", "${state}/driver.sock"],
+          "env": {
+            "CUA_DRIVER_EMBEDDED": "1",
+            "CUA_DRIVER_HOST_BUNDLE_ID": "com.moltcode.molt",
+            "CUA_DRIVER_PARENT_LIVENESS_STDIN": "1",
+            "CUA_DRIVER_RS_HOME": "${state}/home",
+            "CUA_DRIVER_RS_TELEMETRY_ENABLED": "0",
+            "CUA_DRIVER_RS_UPDATE_CHECK": "0"
+          },
+          "socket": "${state}/driver.sock"
+        }
+      }
+    }
+  }
+}
